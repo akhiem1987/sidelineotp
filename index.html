@@ -1,0 +1,73 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sideline OTP</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 2em; background-color: #f7f7f7; }
+    .container { max-width: 500px; margin: auto; background: white; padding: 2em; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    input, button { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; }
+    .result { margin-top: 20px; padding: 1em; background: #eee; border-radius: 5px; word-break: break-word; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Lấy mã OTP Sideline</h2>
+    <input type="text" id="phoneInput" placeholder="Nhập số điện thoại (ví dụ: +14022106159)">
+    <button onclick="getOTPByPhone()">Lấy OTP</button>
+    <div id="result" class="result"></div>
+  </div>
+
+  <script>
+    const apiKey = "MQgRf8W6ANC12H0HyUPCfiACv3O6sr";
+
+    const phoneMap = [
+      { "phone": "+14022106159", "id": "297045661" },
+      { "phone": "+13177409890", "id": "297045672" }
+    ];
+
+    async function getOTPByPhone() {
+      const phone = document.getElementById("phoneInput").value.trim();
+      const resultBox = document.getElementById("result");
+      if (!phone) return resultBox.innerHTML = "Vui lòng nhập số điện thoại.";
+
+      const match = phoneMap.find(entry => entry.phone === phone);
+      if (!match) {
+        resultBox.innerHTML = "Không tìm thấy ID cho số điện thoại này.";
+        return;
+      }
+
+      const id = match.id;
+      resultBox.innerHTML = `Đang kiểm tra mã OTP cho ID: ${id}...`;
+
+      try {
+        const extraRes = await fetch(`https://daisysms.com/stubs/handler_api.php?api_key=${apiKey}&action=getExtraActivation&activationId=${id}`);
+        const extraText = await extraRes.text();
+
+        if (extraText.includes("ACCESS_EXTRA_ACTIVATION")) {
+          const parts = extraText.split(":");
+          const sms = parts.slice(2).join(":").trim();
+          resultBox.innerHTML = `<b>Mã OTP (extra):</b> ${sms}`;
+          return;
+        }
+
+        const statusRes = await fetch(`https://daisysms.com/stubs/handler_api.php?api_key=${apiKey}&action=getStatus&id=${id}`);
+        const statusText = await statusRes.text();
+
+        if (statusText.includes("STATUS_OK")) {
+          const parts = statusText.split(":");
+          const sms = parts.slice(2).join(":").trim();
+          resultBox.innerHTML = `<b>Mã OTP (status):</b> ${sms}`;
+        } else {
+          resultBox.innerHTML = `Không tìm thấy OTP. Trạng thái: ${statusText}`;
+        }
+
+      } catch (err) {
+        resultBox.innerHTML = `Lỗi: ${err.message}`;
+      }
+    }
+  </script>
+</body>
+</html>
